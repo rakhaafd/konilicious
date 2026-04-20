@@ -2,6 +2,7 @@ import { useState } from "react";
 import Input from "../../components/Input";
 import Button from "../../components/Button";
 import { showAlert } from "../../components/SweetAlert";
+import api from "../../utils/api";
 
 export default function AuthPage({ mode, setPage, setIsLoggedIn, setUser }) {
   const [username, setUsername] = useState("");
@@ -45,49 +46,35 @@ export default function AuthPage({ mode, setPage, setIsLoggedIn, setUser }) {
         onClick={async () => {
           try {
             const endpoint = isMasuk
-              ? "http://localhost:5000/api/v1/auth/login"
-              : "http://localhost:5000/api/v1/auth/register";
+              ? "/auth/login"
+              : "/auth/register";
 
             const body = isMasuk
               ? { email, password: pass }
               : { username, email, password: pass };
 
-            const res = await fetch(endpoint, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(body),
-            });
+            const { data } = await api.post(endpoint, body);
 
-            const data = await res.json();
-
-            if (res.ok) {
-              if (isMasuk) {
-                if (data.token) {
-                  localStorage.setItem("token", data.token);
-                }
-                setUser(data.user || data.data || data);
-                setIsLoggedIn(true);
-                setPage("beranda");
-              } else {
-                await showAlert({
-                  title: "Pendaftaran Berhasil",
-                  text: "Silakan login dengan akun yang sudah dibuat.",
-                  icon: "success",
-                });
-                setPage("login");
+            if (isMasuk) {
+              if (data.token) {
+                localStorage.setItem("token", data.token);
               }
+              setUser(data.user || data.data || data);
+              setIsLoggedIn(true);
+              setPage("beranda");
             } else {
               await showAlert({
-                title: "Proses Gagal",
-                text: data.message || "Terjadi kesalahan.",
-                icon: "error",
+                title: "Pendaftaran Berhasil",
+                text: "Silakan login dengan akun yang sudah dibuat.",
+                icon: "success",
               });
+              setPage("login");
             }
           } catch (error) {
             console.error(error);
             await showAlert({
-              title: "Koneksi Gagal",
-              text: "Error connecting to server.",
+              title: "Proses Gagal",
+              text: error?.response?.data?.message || "Error connecting to server.",
               icon: "error",
             });
           }

@@ -7,6 +7,7 @@ import Button from "../../components/Button";
 import Card from "../../components/Card";
 import Label from "../../components/Label";
 import { showConfirm } from "../../components/SweetAlert";
+import api from "../../utils/api";
 
 const FALLBACK_IMAGE =
   "https://images.unsplash.com/photo-1544025162-d76694265947?w=600&q=80";
@@ -34,9 +35,7 @@ export default function DetailPage({ item, setPage, addToCart, showToast }) {
     const fetchMenuById = async () => {
       setLoadingDetail(true);
       try {
-        const res = await fetch(`http://localhost:5000/api/v1/menu/${menuId}`);
-        if (!res.ok) throw new Error("Menu tidak ditemukan");
-        const data = await res.json();
+        const { data } = await api.get(`/menu/${menuId}`);
 
         setMenuDetail({
           id: data._id,
@@ -80,6 +79,8 @@ export default function DetailPage({ item, setPage, addToCart, showToast }) {
   }
 
   const labelOptions = currentItem.labelOptions || [];
+  const unitPrice = Number(currentItem.price || 0);
+  const totalPrice = unitPrice * qty;
 
   const processPayment = async () => {
     const confirmed = await showConfirm({
@@ -92,48 +93,39 @@ export default function DetailPage({ item, setPage, addToCart, showToast }) {
 
     const token = localStorage.getItem("token");
     if (!token) {
-      showToast("Silakan login terlebih dahulu untuk membeli!");
+      showToast("Tolong login dulu sebelum membeli.");
       setPage("login");
       return;
     }
 
     setIsProcessing(true);
     try {
-      const res = await fetch("http://localhost:5000/api/v1/payment/checkout", {
-        method: "POST",
+      const { data } = await api.post("/payment/checkout", {
+        menuId: currentItem.id || currentItem._id,
+        quantity: qty,
+        paymentMethod: "Online",
+        label: selectedLabel,
+      }, {
         headers: {
-          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          menuId: currentItem.id || currentItem._id,
-          quantity: qty,
-          paymentMethod: "Online",
-          label: selectedLabel,
-        }),
+        }
       });
 
-      const data = await res.json();
+      const invoiceUrl = data.invoiceUrl || data.payment?.invoiceUrl || data.data?.invoiceUrl;
 
-      if (res.ok) {
-        const invoiceUrl = data.invoiceUrl || data.payment?.invoiceUrl || data.data?.invoiceUrl;
-
-        if (invoiceUrl) {
-          if (data?.payment?._id) {
-            localStorage.setItem("pendingPaymentId", data.payment._id);
-          }
-          showToast("Mengarahkan ke halaman pembayaran...");
-          window.location.href = invoiceUrl;
-        } else {
-          showToast("Pembayaran berhasil! Pesanan sedang diproses.");
-          setPage("beranda");
+      if (invoiceUrl) {
+        if (data?.payment?._id) {
+          localStorage.setItem("pendingPaymentId", data.payment._id);
         }
+        showToast("Mengarahkan ke halaman pembayaran...");
+        window.location.href = invoiceUrl;
       } else {
-        showToast(data.message || "Gagal memproses pembayaran");
+        showToast("Pembayaran berhasil! Pesanan sedang diproses.");
+        setPage("beranda");
       }
     } catch (err) {
       console.error("Failed to process transaction", err);
-      showToast("Terjadi kesalahan jaringan");
+      showToast(err?.response?.data?.message || "Terjadi kesalahan jaringan");
     } finally {
       setIsProcessing(false);
     }
@@ -189,8 +181,10 @@ export default function DetailPage({ item, setPage, addToCart, showToast }) {
           </div>
 
           <div className="mb-8">
-            <p className="font-black text-4xl text-red-600 tracking-tight">{formatRp(currentItem.price)}</p>
-            <p className="text-gray-400 text-sm mt-1 font-medium">per porsi</p>
+            <p className="font-black text-4xl text-red-600 tracking-tight">{formatRp(totalPrice)}</p>
+            <p className="text-gray-400 text-sm mt-1 font-medium">
+              {qty > 1 ? `${qty} porsi • ${formatRp(unitPrice)} / porsi` : "per porsi"}
+            </p>
           </div>
 
           <div className="mb-6">
@@ -250,10 +244,7 @@ export default function DetailPage({ item, setPage, addToCart, showToast }) {
               fullWidth
               size="lg"
               className="flex items-center justify-center gap-2"
-              onClick={() => {
-                addToCart({ ...currentItem, label: selectedLabel }, qty);
-                showToast(`${currentItem.name} (${selectedLabel}) ditambahkan ke keranjang!`);
-              }}
+              onClick={() => addToCart({ ...currentItem, label: selectedLabel }, qty)}
             >
               <IoCartOutline className="text-xl" />
               Keranjang

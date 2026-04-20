@@ -7,6 +7,27 @@ import Label from "../../components/Label";
 import { FaMapMarkerAlt, FaPhoneAlt, FaEnvelope } from "react-icons/fa";
 import { showAlert } from "../../components/SweetAlert";
 
+const HERO_DOTS = [
+  { id: 1, x: "8%", y: "16%", size: "8px", color: "#FFC107", drift: "12s", glow: "6.4s", delay: "0s" },
+  { id: 2, x: "22%", y: "10%", size: "6px", color: "#E00013", drift: "16s", glow: "8.2s", delay: "0.7s" },
+  { id: 3, x: "35%", y: "19%", size: "10px", color: "#F97316", drift: "14s", glow: "7.5s", delay: "1.2s" },
+  { id: 4, x: "48%", y: "8%", size: "7px", color: "#FFC107", drift: "17s", glow: "9s", delay: "0.4s" },
+  { id: 5, x: "61%", y: "14%", size: "5px", color: "#FB7185", drift: "13s", glow: "6.9s", delay: "1.8s" },
+  { id: 6, x: "74%", y: "11%", size: "8px", color: "#E00013", drift: "15s", glow: "8.4s", delay: "0.9s" },
+  { id: 7, x: "86%", y: "18%", size: "6px", color: "#FFC107", drift: "12.5s", glow: "6.5s", delay: "2.1s" },
+  { id: 8, x: "14%", y: "36%", size: "9px", color: "#F97316", drift: "18s", glow: "9.6s", delay: "1.1s" },
+  { id: 9, x: "28%", y: "30%", size: "6px", color: "#E00013", drift: "11.5s", glow: "6.2s", delay: "2.4s" },
+  { id: 10, x: "41%", y: "37%", size: "7px", color: "#FFC107", drift: "14.8s", glow: "8.1s", delay: "0.3s" },
+  { id: 11, x: "56%", y: "33%", size: "5px", color: "#FB7185", drift: "13.7s", glow: "7.2s", delay: "1.7s" },
+  { id: 12, x: "69%", y: "38%", size: "8px", color: "#F97316", drift: "16.5s", glow: "8.8s", delay: "2.6s" },
+  { id: 13, x: "82%", y: "32%", size: "7px", color: "#E00013", drift: "12.8s", glow: "7.3s", delay: "0.6s" },
+  { id: 14, x: "10%", y: "54%", size: "6px", color: "#FFC107", drift: "15.2s", glow: "8.1s", delay: "2.9s" },
+  { id: 15, x: "26%", y: "60%", size: "10px", color: "#F97316", drift: "17.4s", glow: "9.3s", delay: "1.4s" },
+  { id: 16, x: "44%", y: "56%", size: "6px", color: "#E00013", drift: "13.4s", glow: "7.1s", delay: "3.1s" },
+  { id: 17, x: "63%", y: "62%", size: "8px", color: "#FFC107", drift: "16.1s", glow: "8.6s", delay: "1.9s" },
+  { id: 18, x: "80%", y: "58%", size: "6px", color: "#FB7185", drift: "14.1s", glow: "7.6s", delay: "2.2s" },
+];
+
 const BerandaPage = ({ setPage }) => {
   const [isSending, setIsSending] = useState(false);
   const [contactForm, setContactForm] = useState({
@@ -90,12 +111,29 @@ const BerandaPage = ({ setPage }) => {
           className="relative pt-24 pb-32 flex items-center justify-center overflow-hidden"
         >
           {/* Background Decoration */}
-          <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10">
+          <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+            <div className="beranda-dots-layer" aria-hidden="true">
+              {HERO_DOTS.map((dot) => (
+                <span
+                  key={dot.id}
+                  className="beranda-dot"
+                  style={{
+                    left: dot.x,
+                    top: dot.y,
+                    "--dot-size": dot.size,
+                    "--dot-color": dot.color,
+                    "--drift-duration": dot.drift,
+                    "--glow-duration": dot.glow,
+                    "--dot-delay": dot.delay,
+                  }}
+                />
+              ))}
+            </div>
             <div className="absolute top-[-10%] right-[-5%] w-96 h-96 bg-primary rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
             <div className="absolute top-[20%] left-[-10%] w-72 h-72 bg-secondary rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-blob animation-delay-2000"></div>
           </div>
 
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <span className="inline-block py-1.5 px-4 rounded-full bg-secondary/10 text-secondary font-semibold text-sm mb-6 border border-secondary/20 shadow-sm">
               🔥 100% Halal & Menggugah Selera
             </span>
@@ -379,33 +417,6 @@ const BerandaPage = ({ setPage }) => {
                       Punya pertanyaan, kritik, saran, atau mau pesan jumlah
                       besar untuk acara (katering)? Jangan ragu untuk sapa kami!
                     </p>
-
-                    <div className="space-y-8">
-                      <div className="flex items-start gap-5">
-                        <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center shrink-0 backdrop-blur-sm shadow-lg shadow-white/5 transition-transform hover:scale-110">
-                          <FaMapMarkerAlt className="text-xl text-white drop-shadow-md" />
-                        </div>
-                        <p className="text-sm leading-relaxed text-white/90 pt-2 font-medium">
-                          Jl. Sate Taichan No. 1, Jakarta Selatan, 12345
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-5">
-                        <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center shrink-0 backdrop-blur-sm shadow-lg shadow-white/5 transition-transform hover:scale-110">
-                          <FaPhoneAlt className="text-xl text-white drop-shadow-md" />
-                        </div>
-                        <p className="text-sm text-white/90 font-medium">
-                          +62 812 3456 7890
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-5">
-                        <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center shrink-0 backdrop-blur-sm shadow-lg shadow-white/5 transition-transform hover:scale-110">
-                          <FaEnvelope className="text-xl text-white drop-shadow-md" />
-                        </div>
-                        <p className="text-sm text-white/90 font-medium">
-                          hello@konilicious.com
-                        </p>
-                      </div>
-                    </div>
 
                     <div className="mt-10">
                       <p className="text-xs uppercase tracking-[0.18em] text-white/60 mb-3 font-semibold">

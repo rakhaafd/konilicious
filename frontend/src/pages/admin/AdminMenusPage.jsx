@@ -1,10 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Card from "../../components/Card";
 import Button from "../../components/Button";
 import Input from "../../components/Input";
 import { showConfirm } from "../../components/SweetAlert";
-
-const ADMIN_API_BASE = "http://localhost:5000/api/v1/admin";
+import api from "../../utils/api";
 
 const initialForm = {
   name: "",
@@ -13,8 +12,10 @@ const initialForm = {
   tag: "",
   price: "",
   description: "",
-  image: "",
-  imagePublicId: "",
+  image: null,
+  imagePreview: "",
+  existingImage: "",
+  removeImage: false,
 };
 
 export default function AdminMenusPage() {
@@ -26,11 +27,19 @@ export default function AdminMenusPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingMenuId, setEditingMenuId] = useState(null);
   const [form, setForm] = useState(initialForm);
+  const fileInputRef = useRef(null);
+  const objectUrlRef = useRef("");
+
+  const cleanupObjectUrl = () => {
+    if (objectUrlRef.current) {
+      URL.revokeObjectURL(objectUrlRef.current);
+      objectUrlRef.current = "";
+    }
+  };
 
   const authHeaders = useMemo(() => {
     const token = localStorage.getItem("token");
     return {
-      "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     };
   }, []);
@@ -40,10 +49,7 @@ export default function AdminMenusPage() {
     setError("");
 
     try {
-      const res = await fetch(`${ADMIN_API_BASE}/menus`, { headers: authHeaders });
-      if (!res.ok) throw new Error(`Gagal mengambil menu (${res.status})`);
-
-      const data = await res.json();
+      const { data } = await api.get("/admin/menus", { headers: authHeaders });
       setMenus(Array.isArray(data) ? data : []);
     } catch (err) {
       setError(err.message || "Terjadi kesalahan saat mengambil data menu.");
@@ -58,8 +64,10 @@ export default function AdminMenusPage() {
   }, []);
 
   const openCreateForm = () => {
+    cleanupObjectUrl();
     setEditingMenuId(null);
     setForm(initialForm);
+    if (fileInputRef.current) fileInputRef.current.value = "";
     setIsFormOpen(true);
   };
 
@@ -72,17 +80,40 @@ export default function AdminMenusPage() {
       tag: menu.tag || "",
       price: menu.price ?? "",
       description: menu.description || "",
-      image: menu.image || "",
-      imagePublicId: menu.imagePublicId || "",
+      image: null,
+      imagePreview: menu.image || "",
+      existingImage: menu.image || "",
+      removeImage: false,
     });
+    if (fileInputRef.current) fileInputRef.current.value = "";
     setIsFormOpen(true);
   };
 
   const closeForm = () => {
+    cleanupObjectUrl();
     setIsFormOpen(false);
     setEditingMenuId(null);
     setForm(initialForm);
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
+
+  const handleRemoveImage = () => {
+    setForm((prev) => ({
+      ...prev,
+      image: null,
+      imagePreview: "",
+      existingImage: "",
+      removeImage: true,
+    }));
+
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  useEffect(() => {
+    return () => {
+      cleanupObjectUrl();
+    };
+  }, []);
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -90,31 +121,35 @@ export default function AdminMenusPage() {
     setError("");
 
     try {
-      const payload = {
-        name: form.name,
-        category: form.category,
-        labelOptions: form.labelOptions,
-        tag: form.tag || null,
-        price: Number(form.price),
-        description: form.description,
-        image: form.image || null,
-        imagePublicId: form.imagePublicId || null,
-      };
+      const payload = new FormData();
+      payload.append("name", form.name);
+      payload.append("category", form.category);
+      payload.append("labelOptions", form.labelOptions);
+      payload.append("tag", form.tag || "");
+      payload.append("price", String(Number(form.price)));
+      payload.append("description", form.description);
+
+      if (form.image instanceof File) {
+        payload.append("image", form.image);
+      }
+
+      if (editingMenuId && form.removeImage && !(form.image instanceof File)) {
+        payload.append("image", "");
+        payload.append("imagePublicId", "");
+      }
 
       const endpoint = editingMenuId
-        ? `${ADMIN_API_BASE}/menus/${editingMenuId}`
-        : `${ADMIN_API_BASE}/menus`;
+        ? `/admin/menus/${editingMenuId}`
+        : "/admin/menus";
 
       const method = editingMenuId ? "PUT" : "POST";
 
-      const res = await fetch(endpoint, {
+      await api({
+        url: endpoint,
         method,
         headers: authHeaders,
-        body: JSON.stringify(payload),
+        data: payload,
       });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Gagal menyimpan menu.");
 
       await fetchMenus();
       closeForm();
@@ -134,13 +169,9 @@ export default function AdminMenusPage() {
 
     setError("");
     try {
-      const res = await fetch(`${ADMIN_API_BASE}/menus/${id}`, {
-        method: "DELETE",
+      await api.delete(`/admin/menus/${id}`, {
         headers: authHeaders,
       });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Gagal menghapus menu.");
 
       setMenus((prev) => prev.filter((m) => m._id !== id));
     } catch (err) {
@@ -265,17 +296,77 @@ export default function AdminMenusPage() {
                 onChange={(e) => setForm((prev) => ({ ...prev, labelOptions: e.target.value }))}
               />
 
-              <Input
-                label="Image URL"
-                value={form.image}
-                onChange={(e) => setForm((prev) => ({ ...prev, image: e.target.value }))}
-              />
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">
+                  Upload Gambar Menu
+                </label>
 
-              <Input
-                label="Image Public ID"
-                value={form.imagePublicId}
-                onChange={(e) => setForm((prev) => ({ ...prev, imagePublicId: e.target.value }))}
-              />
+                <div className="flex items-center gap-3">
+                  <input
+                    id="file-upload"
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    required={!editingMenuId && !form.image && !form.existingImage}
+                    className="hidden"
+                    onChange={(e) => {
+                      const selectedFile = e.target.files?.[0] || null;
+                      cleanupObjectUrl();
+
+                      const previewUrl = selectedFile ? URL.createObjectURL(selectedFile) : "";
+                      if (previewUrl) {
+                        objectUrlRef.current = previewUrl;
+                      }
+
+                      setForm((prev) => ({
+                        ...prev,
+                        image: selectedFile,
+                        imagePreview: previewUrl || prev.existingImage || "",
+                        removeImage: false,
+                      }));
+                    }}
+                  />
+
+                  <label
+                    htmlFor="file-upload"
+                    className="cursor-pointer bg-primary text-white px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition"
+                  >
+                    Choose File
+                  </label>
+
+                  <span className="text-sm text-gray-600 truncate max-w-65">
+                    {form.image
+                      ? form.image.name
+                      : form.existingImage
+                        ? "Gambar tersimpan"
+                        : "No file chosen"}
+                  </span>
+                </div>
+
+                {form.imagePreview && (
+                  <div className="relative mt-3 w-40 h-28 rounded-xl overflow-hidden border border-gray-200 bg-gray-50">
+                    <img
+                      src={form.imagePreview}
+                      alt="Preview menu"
+                      className="w-full h-full object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleRemoveImage}
+                      className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/70 text-white text-xs font-bold hover:bg-black transition"
+                      title="Hapus gambar"
+                    >
+                      X
+                    </button>
+                  </div>
+                )}
+
+                {editingMenuId && form.existingImage && !form.image && (
+                  <p className="text-xs text-gray-500 mt-2">
+                    Gambar lama sudah dipilih. Upload file baru jika ingin mengganti.
+                  </p>
+                )}
+              </div>
 
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2">Deskripsi</label>

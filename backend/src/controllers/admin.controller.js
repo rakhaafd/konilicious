@@ -1,10 +1,30 @@
 const bcrypt = require('bcryptjs');
 const mongoose = require('mongoose');
+const cloudinary = require('cloudinary').v2;
+const streamifier = require('streamifier');
 
 const User = require('../models/user.model');
 const Menu = require('../models/menu.model');
 const Rating = require('../models/rating.model');
 const Order = require('../models/order.model');
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+const uploadToCloudinary = (buffer, folder = 'menu_images') => new Promise((resolve, reject) => {
+  const stream = cloudinary.uploader.upload_stream(
+    { folder },
+    (error, result) => {
+      if (error) return reject(error);
+      return resolve(result);
+    }
+  );
+
+  streamifier.createReadStream(buffer).pipe(stream);
+});
 
 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 
@@ -300,6 +320,15 @@ exports.createMenu = async (req, res) => {
       return res.status(400).json({ message: 'Format labelOptions tidak valid' });
     }
 
+    let image = req.body.image || null;
+    let imagePublicId = req.body.imagePublicId || null;
+
+    if (req.file?.buffer) {
+      const uploadResult = await uploadToCloudinary(req.file.buffer);
+      image = uploadResult.secure_url;
+      imagePublicId = uploadResult.public_id;
+    }
+
     const menu = await Menu.create({
       name: String(name).trim(),
       category,
@@ -307,8 +336,8 @@ exports.createMenu = async (req, res) => {
       tag: req.body.tag ? String(req.body.tag).trim() : null,
       price: Number(price),
       description: String(description).trim(),
-      image: req.body.image || null,
-      imagePublicId: req.body.imagePublicId || null,
+      image,
+      imagePublicId,
     });
 
     res.status(201).json({ message: 'Menu berhasil dibuat', menu: sanitizeMenu(menu) });
@@ -333,6 +362,12 @@ exports.updateMenu = async (req, res) => {
     if (req.body.tag !== undefined) menu.tag = req.body.tag ? String(req.body.tag).trim() : null;
     if (req.body.image !== undefined) menu.image = req.body.image || null;
     if (req.body.imagePublicId !== undefined) menu.imagePublicId = req.body.imagePublicId || null;
+
+    if (req.file?.buffer) {
+      const uploadResult = await uploadToCloudinary(req.file.buffer);
+      menu.image = uploadResult.secure_url;
+      menu.imagePublicId = uploadResult.public_id;
+    }
 
     if (req.body.category !== undefined || req.body.kategori !== undefined) {
       const category = parseCategory(req.body.category || req.body.kategori);

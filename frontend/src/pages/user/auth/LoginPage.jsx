@@ -4,6 +4,7 @@ import { FiEye, FiEyeOff } from "react-icons/fi";
 import Input from "../../../components/Input";
 import Button from "../../../components/Button"
 import { showAlert } from "../../../components/SweetAlert";
+import api from "../../../utils/api";
 
 export default function LoginPage({ setIsLoggedIn, setUser }) {
   const [email, setEmail] = useState("");
@@ -17,50 +18,20 @@ export default function LoginPage({ setIsLoggedIn, setUser }) {
     e.preventDefault();
     try {
       setLoading(true);
-      const res = await fetch("http://localhost:5000/api/v1/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password: pass }),
-      });
+      const { data } = await api.post("/auth/login-user", { email, password: pass });
+      const loggedInUser = data.user || data.data || data;
 
-      const data = await res.json();
-
-      if (res.ok) {
-        const loggedInUser = data.user || data.data || data;
-
-        if (loggedInUser?.role === "admin") {
-          localStorage.removeItem("token");
-          localStorage.removeItem("user");
-          localStorage.setItem("isLoggedIn", "false");
-          setUser(null);
-          setIsLoggedIn(false);
-          await showAlert({
-            title: "Login Ditolak",
-            text: "Akun admin hanya bisa login lewat halaman admin.",
-            icon: "error",
-          });
-          navigate("/admin/login");
-          return;
-        }
-
-        if (data.token) {
-          localStorage.setItem("token", data.token);
-        }
-        setUser(loggedInUser);
-        setIsLoggedIn(true);
-        navigate("/");
-      } else {
-        await showAlert({
-          title: "Login Gagal",
-          text: data.message || "Email atau password salah.",
-          icon: "error",
-        });
+      if (data.token) {
+        localStorage.setItem("token", data.token);
       }
+      setUser(loggedInUser);
+      setIsLoggedIn(true);
+      navigate("/");
     } catch (error) {
       console.error(error);
       await showAlert({
-        title: "Koneksi Gagal",
-        text: "Gagal terhubung ke server.",
+        title: "Login Gagal",
+        text: error?.response?.data?.message || "Email atau password salah.",
         icon: "error",
       });
     } finally {

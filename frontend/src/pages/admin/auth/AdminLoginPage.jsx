@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Input from "../../../components/Input";
 import Button from "../../../components/Button";
+import api from "../../../utils/api";
 
 export default function AdminLoginPage({ setIsLoggedIn, setUser }) {
   const navigate = useNavigate();
@@ -16,18 +17,7 @@ export default function AdminLoginPage({ setIsLoggedIn, setUser }) {
 
     try {
       setLoading(true);
-      const res = await fetch("http://localhost:5000/api/v1/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await res.json();  
-
-      if (!res.ok) {
-        setError(data.message || "Login gagal.");
-        return;
-      }
+      const { data } = await api.post("/auth/login", { email, password });
 
       const loggedInUser = data.user || data.data || null;
       if (!loggedInUser || loggedInUser.role !== "admin") {
@@ -47,8 +37,8 @@ export default function AdminLoginPage({ setIsLoggedIn, setUser }) {
       setUser(loggedInUser);
       setIsLoggedIn(true);
       navigate("/admin");
-    } catch {
-      setError("Gagal terhubung ke server.");
+    } catch (error) {
+      setError(error?.response?.data?.message || "Gagal terhubung ke server.");
     } finally {
       setLoading(false);
     }

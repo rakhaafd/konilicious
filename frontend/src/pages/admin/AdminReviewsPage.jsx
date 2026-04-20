@@ -3,8 +3,7 @@ import Card from "../../components/Card";
 import Button from "../../components/Button";
 import Input from "../../components/Input";
 import { showConfirm } from "../../components/SweetAlert";
-
-const ADMIN_API_BASE = "http://localhost:5000/api/v1/admin";
+import api from "../../utils/api";
 
 const initialForm = {
   rating: 5,
@@ -34,10 +33,7 @@ export default function AdminReviewsPage() {
     setError("");
 
     try {
-      const res = await fetch(`${ADMIN_API_BASE}/ratings`, { headers: authHeaders });
-      if (!res.ok) throw new Error(`Gagal mengambil data review (${res.status})`);
-
-      const data = await res.json();
+      const { data } = await api.get("/admin/ratings", { headers: authHeaders });
       setReviews(Array.isArray(data) ? data : []);
     } catch (err) {
       setError(err.message || "Terjadi kesalahan saat mengambil data review.");
@@ -79,14 +75,9 @@ export default function AdminReviewsPage() {
         comment: form.comment,
       };
 
-      const res = await fetch(`${ADMIN_API_BASE}/ratings/${editingReviewId}`, {
-        method: "PUT",
+      await api.put(`/admin/ratings/${editingReviewId}`, payload, {
         headers: authHeaders,
-        body: JSON.stringify(payload),
       });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Gagal mengupdate review.");
 
       await fetchReviews();
       closeForm();
@@ -106,13 +97,9 @@ export default function AdminReviewsPage() {
 
     setError("");
     try {
-      const res = await fetch(`${ADMIN_API_BASE}/ratings/${id}`, {
-        method: "DELETE",
+      await api.delete(`/admin/ratings/${id}`, {
         headers: authHeaders,
       });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Gagal menghapus review.");
 
       setReviews((prev) => prev.filter((r) => r._id !== id));
     } catch (err) {

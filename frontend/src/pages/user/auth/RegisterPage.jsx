@@ -4,6 +4,7 @@ import { FiEye, FiEyeOff } from "react-icons/fi";
 import Input from "../../../components/Input";
 import Button from "../../../components/Button"
 import { showAlert } from "../../../components/SweetAlert";
+import api from "../../../utils/api";
 
 export default function RegisterPage() {
   const [username, setUsername] = useState("");
@@ -18,33 +19,18 @@ export default function RegisterPage() {
     e.preventDefault();
     try {
       setLoading(true);
-      const res = await fetch("http://localhost:5000/api/v1/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, email, password: pass }),
+      await api.post("/auth/register", { username, email, password: pass });
+      await showAlert({
+        title: "Pendaftaran Berhasil",
+        text: "Silakan masuk menggunakan akun yang baru dibuat.",
+        icon: "success",
       });
-
-      const data = await res.json();
-
-      if (res.ok) {
-        await showAlert({
-          title: "Pendaftaran Berhasil",
-          text: "Silakan masuk menggunakan akun yang baru dibuat.",
-          icon: "success",
-        });
-        navigate("/login");
-      } else {
-        await showAlert({
-          title: "Pendaftaran Gagal",
-          text: data.message || "Gagal mendaftar.",
-          icon: "error",
-        });
-      }
+      navigate("/login");
     } catch (error) {
       console.error(error);
       await showAlert({
-        title: "Koneksi Gagal",
-        text: "Gagal terhubung ke server.",
+        title: "Pendaftaran Gagal",
+        text: error?.response?.data?.message || "Gagal terhubung ke server.",
         icon: "error",
       });
     } finally {

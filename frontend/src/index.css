@@ -54,3 +54,56 @@
 .welcome-progress {
   animation: welcome-progress 1.9s cubic-bezier(0.2, 0.8, 0.2, 1) 0.25s both;
 }
+
+@keyframes beranda-dot-drift {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(16px, -12px, 0) scale(1.1);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes beranda-dot-glow {
+  0%,
+  100% {
+    opacity: 0.2;
+    filter: blur(0);
+  }
+  50% {
+    opacity: 0.52;
+    filter: blur(0.2px);
+  }
+}
+
+.beranda-dots-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.beranda-dot {
+  position: absolute;
+  width: var(--dot-size, 7px);
+  height: var(--dot-size, 7px);
+  border-radius: 999px;
+  background: var(--dot-color, #ffc107);
+  opacity: 0.25;
+  will-change: transform, opacity;
+  animation-name: beranda-dot-drift, beranda-dot-glow;
+  animation-duration: var(--drift-duration, 14s), var(--glow-duration, 7.6s);
+  animation-delay: var(--dot-delay, 0s), var(--dot-delay, 0s);
+  animation-timing-function: ease-in-out, ease-in-out;
+  animation-iteration-count: infinite, infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .beranda-dot {
+    animation: none;
+    opacity: 0.28;
+  }
+}

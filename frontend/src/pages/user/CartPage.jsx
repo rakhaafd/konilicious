@@ -4,6 +4,7 @@ import { IoCartOutline, IoArrowBackOutline } from "react-icons/io5";
 import Button from "../../components/Button";
 import Card from "../../components/Card";
 import { showConfirm } from "../../components/SweetAlert";
+import api from "../../utils/api";
 
 export default function CartPage({ cart, setCart, setPage, showToast, updateCartItem, removeCartItem, clearCart }) {
   const [isProcessing, setIsProcessing] = useState(false);
@@ -58,39 +59,30 @@ export default function CartPage({ cart, setCart, setPage, showToast, updateCart
 
     setIsProcessing(true);
     try {
-      const res = await fetch("http://localhost:5000/api/v1/payment", {
-        method: "POST",
+      const { data } = await api.post("/payment", {
+        paymentMethod: "Online"
+      }, {
         headers: {
-          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({ 
-          paymentMethod: "Online"
-        })
-      });
-      
-      const data = await res.json();
-      
-      if (res.ok) {
-        // Cek URL invoice dari res body Xendit!
-        const invoiceUrl = data.invoiceUrl || data.payment?.invoiceUrl || data.data?.invoiceUrl;
-        
-        if (invoiceUrl) {
-          if (data?.payment?._id) {
-            localStorage.setItem("pendingPaymentId", data.payment._id);
-          }
-          showToast("Mengarahkan ke halaman pembayaran...");
-          window.location.href = invoiceUrl;
-        } else {
-          showToast("Pesanan berhasil! Terima kasih");
-          setPage("beranda");
         }
+      });
+
+      // Cek URL invoice dari res body Xendit!
+      const invoiceUrl = data.invoiceUrl || data.payment?.invoiceUrl || data.data?.invoiceUrl;
+
+      if (invoiceUrl) {
+        if (data?.payment?._id) {
+          localStorage.setItem("pendingPaymentId", data.payment._id);
+        }
+        showToast("Mengarahkan ke halaman pembayaran...");
+        window.location.href = invoiceUrl;
       } else {
-        showToast(data.message || "Gagal membuat transaksi");
+        showToast("Pesanan berhasil! Terima kasih");
+        setPage("beranda");
       }
     } catch (err) {
       console.error("Failed to process transaction", err);
-      showToast("Terjadi kesalahan jaringan");
+      showToast(err?.response?.data?.message || "Terjadi kesalahan jaringan");
     } finally {
       setIsProcessing(false);
     }

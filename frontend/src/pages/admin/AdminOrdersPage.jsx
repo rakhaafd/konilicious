@@ -1,20 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import Card from "../../components/Card";
 import Button from "../../components/Button";
+import api from "../../utils/api";
 
-const ORDER_API_BASE = "http://localhost:5000/api/v1/order";
+const ORDER_API_BASE = "/order";
 const ORDER_STATUSES = ["WAITING", "PROCESSING", "COMPLETED", "CANCELLED"];
-
-const parseJsonSafely = async (res) => {
-  const text = await res.text();
-  if (!text) return {};
-
-  try {
-    return JSON.parse(text);
-  } catch {
-    return {};
-  }
-};
 
 const isFailedToFetchError = (err) =>
   err instanceof TypeError && /failed to fetch|networkerror/i.test(String(err.message || ""));
@@ -26,18 +16,14 @@ const updateOrderStatusRequest = async (orderId, nextStatus, headers) => {
 
   for (const method of methods) {
     try {
-      const res = await fetch(endpoint, {
-        method,
+      const res = await api({
+        url: endpoint,
+        method: method.toLowerCase(),
         headers,
-        body: JSON.stringify({ status: nextStatus }),
+        data: { status: nextStatus },
       });
 
-      const data = await parseJsonSafely(res);
-      if (!res.ok) {
-        throw new Error(data.message || `Gagal mengupdate status order (${res.status})`);
-      }
-
-      return data;
+      return res.data;
     } catch (err) {
       lastError = err;
       if (!isFailedToFetchError(err) || method === methods[methods.length - 1]) {
@@ -91,10 +77,8 @@ export default function AdminOrdersPage() {
           ? `${ORDER_API_BASE}`
           : `${ORDER_API_BASE}/status/${status}`;
 
-      const res = await fetch(endpoint, { headers: authHeaders });
-      if (!res.ok) throw new Error(`Gagal mengambil order (${res.status})`);
-
-      const data = await res.json();
+      const res = await api.get(endpoint, { headers: authHeaders });
+      const data = res.data;
       const rawOrders = Array.isArray(data) ? data : [];
       const nextOrders =
         status === "ALL"

@@ -16,7 +16,7 @@ export default function WelcomePage({ isClosing }) {
           Sate taichan dengan rasa yang bikin nagih
         </p>
 
-        <div className="mt-8 h-1.5 w-56 md:w-72 mx-auto bg-white/20 rounded-full overflow-hidden">
+        <div className="mt-8 h-1.5 w-56 md:w-40 mx-auto bg-white/20 rounded-full overflow-hidden">
           <div className="h-full w-full bg-primary welcome-progress" />
         </div>
       </div>

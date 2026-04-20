@@ -14,8 +14,8 @@ import {
   Legend,
   Filler,
 } from "chart.js";
+import api from "../../utils/api";
 
-const ADMIN_API_BASE = "http://localhost:5000/api/v1/admin";
 const PIE_COLORS = ["#E00013", "#FFC107", "#111827", "#22C55E", "#0EA5E9"];
 
 ChartJS.register(
@@ -115,23 +115,15 @@ export default function AdminDashboardPage() {
       try {
         const headers = { Authorization: `Bearer ${token}` };
         const [summaryRes, usersRes, menusRes, ratingsRes] = await Promise.all([
-          fetch(`${ADMIN_API_BASE}/dashboard`, { headers }),
-          fetch(`${ADMIN_API_BASE}/users`, { headers }),
-          fetch(`${ADMIN_API_BASE}/menus`, { headers }),
-          fetch(`${ADMIN_API_BASE}/ratings`, { headers }),
+          api.get("/admin/dashboard", { headers }),
+          api.get("/admin/users", { headers }),
+          api.get("/admin/menus", { headers }),
+          api.get("/admin/ratings", { headers }),
         ]);
-
-        if (!summaryRes.ok || !usersRes.ok || !menusRes.ok || !ratingsRes.ok) {
-          const firstFailed = [summaryRes, usersRes, menusRes, ratingsRes].find((res) => !res.ok);
-          throw new Error(`Gagal memuat data admin (${firstFailed?.status || 500})`);
-        }
-
-        const [summaryData, usersData, menusData, ratingsData] = await Promise.all([
-          summaryRes.json(),
-          usersRes.json(),
-          menusRes.json(),
-          ratingsRes.json(),
-        ]);
+        const summaryData = summaryRes.data;
+        const usersData = usersRes.data;
+        const menusData = menusRes.data;
+        const ratingsData = ratingsRes.data;
 
         setSummary({
           totalUsers: summaryData.totalUsers || 0,

@@ -11,8 +11,7 @@ RUN npm install
 # Salin semua file source code backend
 COPY . .
 
-# Ekspose port yang digunakan Express (biasanya 5000)
-EXPOSE 5000
+EXPOSE 6001
 
 # Jalankan server
 CMD ["node", "server.js"]

@@ -1,6 +1,7 @@
 import { createContext, useState, useEffect, useContext } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { showAlert } from "../components/SweetAlert";
+import api from "../utils/api";
 
 const AppContext = createContext();
 
@@ -20,29 +21,33 @@ export function AppProvider({ children }) {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const showToast = (msg) =>
+    showAlert({
+      title: "Notifikasi",
+      text: msg,
+      icon: "info",
+    });
+
   const fetchCart = async () => {
     if (!isLoggedIn) return;
     const token = localStorage.getItem("token");
     if (!token) return;
 
     try {
-      const res = await fetch("http://localhost:5000/api/v1/cart", {
+      const { data } = await api.get("/cart", {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (res.ok) {
-        const data = await res.json();
-        const items = Array.isArray(data.data) ? data.data : Array.isArray(data) ? data : data.items || [];
-        const formattedCart = items.map((c) => ({
-          cartId: c._id,
-          id: c.menu?._id || c.menuId || "unknown",
-          name: c.menu?.name || c.name || "Menu",
-          price: c.menu?.price || c.price || 0,
-          img: c.menu?.image || c.image || "https://images.unsplash.com/photo-1544025162-d76694265947?w=600&q=80",
-          qty: c.quantity || c.qty || 1,
-          label: c.label || c.menu?.label || null,
-        }));
-        setCart(formattedCart);
-      }
+      const items = Array.isArray(data.data) ? data.data : Array.isArray(data) ? data : data.items || [];
+      const formattedCart = items.map((c) => ({
+        cartId: c._id,
+        id: c.menu?._id || c.menuId || "unknown",
+        name: c.menu?.name || c.name || "Menu",
+        price: c.menu?.price || c.price || 0,
+        img: c.menu?.image || c.image || "https://images.unsplash.com/photo-1544025162-d76694265947?w=600&q=80",
+        qty: c.quantity || c.qty || 1,
+        label: c.label || c.menu?.label || null,
+      }));
+      setCart(formattedCart);
     } catch (err) {
       console.error("Gagal load keranjang:", err);
     }
@@ -55,13 +60,9 @@ export function AppProvider({ children }) {
     if (!token || !pendingPaymentId) return;
 
     try {
-      const res = await fetch(`http://localhost:5000/api/v1/payment/check/${pendingPaymentId}`, {
+      const { data } = await api.get(`/payment/check/${pendingPaymentId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-
-      if (!res.ok) return;
-
-      const data = await res.json();
       const status = data?.status || data?.payment?.status;
       const normalizedStatus = String(status || "").toUpperCase();
 
@@ -111,45 +112,29 @@ export function AppProvider({ children }) {
     }
   };
 
-  const showToast = (msg) =>
-    showAlert({
-      title: "Notifikasi",
-      text: msg,
-      icon: "info",
-    });
-
   const addToCart = async (item, qty = 1) => {
     const token = localStorage.getItem("token");
     if (!token) {
-      showToast("Silakan login terlebih dahulu untuk menambah keranjang!");
+      showToast("Tolong login dulu sebelum membeli.");
       setPage("login");
       return;
     }
 
     try {
-      const res = await fetch("http://localhost:5000/api/v1/cart", {
-        method: "POST",
+      await api.post("/cart", {
+        menuId: item.id || item._id,
+        quantity: qty,
+        label: item.label,
+      }, {
         headers: {
-          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({ 
-          menuId: item.id || item._id, 
-          quantity: qty, 
-          label: item.label 
-        })
+        }
       });
-
-      if (res.ok) {
-        showToast(`${item.name} berhasil ditambahkan ke keranjang!`);
-        fetchCart();
-      } else {
-        const errData = await res.json();
-        showToast(errData.message || "Gagal menambahkan keranjang");
-      }
+      showToast(`${item.name} berhasil ditambahkan ke keranjang!`);
+      fetchCart();
     } catch (err) {
       console.error(err);
-      showToast("Terjadi kesalahan jaringan");
+      showToast(err?.response?.data?.message || "Terjadi kesalahan jaringan");
     }
   };
 
@@ -162,13 +147,10 @@ export function AppProvider({ children }) {
     );
 
     try {
-      await fetch(`http://localhost:5000/api/v1/cart/${cartId}`, {
-        method: "PUT",
+      await api.put(`/cart/${cartId}`, { quantity: newQty }, {
         headers: {
-          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({ quantity: newQty })
+        }
       });
     } catch (err) {
       console.error("Gagal update keranjang", err);
@@ -183,8 +165,7 @@ export function AppProvider({ children }) {
     setCart((prev) => prev.filter((i) => i.cartId !== cartId));
 
     try {
-      await fetch(`http://localhost:5000/api/v1/cart/${cartId}`, {
-        method: "DELETE",
+      await api.delete(`/cart/${cartId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
     } catch (err) {
@@ -199,8 +180,7 @@ export function AppProvider({ children }) {
 
     setCart([]);
     try {
-      await fetch(`http://localhost:5000/api/v1/cart/clear`, {
-        method: "DELETE",
+      await api.delete("/cart/clear", {
         headers: { Authorization: `Bearer ${token}` }
       });
     } catch (err) {

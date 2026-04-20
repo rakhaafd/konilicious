@@ -3,8 +3,7 @@ import Card from "../../components/Card";
 import Button from "../../components/Button";
 import Input from "../../components/Input";
 import { showConfirm } from "../../components/SweetAlert";
-
-const ADMIN_API_BASE = "http://localhost:5000/api/v1/admin";
+import api from "../../utils/api";
 
 const initialForm = {
   username: "",
@@ -36,15 +35,10 @@ export default function AdminUsersPage() {
     setError("");
 
     try {
-      const res = await fetch(`${ADMIN_API_BASE}/users`, {
+      const res = await api.get("/admin/users", {
         headers: authHeaders,
       });
-
-      if (!res.ok) {
-        throw new Error(`Gagal mengambil user (${res.status})`);
-      }
-
-      const data = await res.json();
+      const data = res.data;
       setUsers(Array.isArray(data) ? data : []);
     } catch (err) {
       setError(err.message || "Terjadi kesalahan saat mengambil data user.");
@@ -98,21 +92,17 @@ export default function AdminUsersPage() {
       }
 
       const endpoint = editingUserId
-        ? `${ADMIN_API_BASE}/users/${editingUserId}`
-        : `${ADMIN_API_BASE}/users`;
+        ? `/admin/users/${editingUserId}`
+        : "/admin/users";
 
       const method = editingUserId ? "PUT" : "POST";
 
-      const res = await fetch(endpoint, {
+      await api({
+        url: endpoint,
         method,
         headers: authHeaders,
-        body: JSON.stringify(payload),
+        data: payload,
       });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.message || "Gagal menyimpan user.");
-      }
 
       await fetchUsers();
       closeForm();
@@ -132,15 +122,9 @@ export default function AdminUsersPage() {
 
     setError("");
     try {
-      const res = await fetch(`${ADMIN_API_BASE}/users/${id}`, {
-        method: "DELETE",
+      await api.delete(`/admin/users/${id}`, {
         headers: authHeaders,
       });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.message || "Gagal menghapus user.");
-      }
 
       setUsers((prev) => prev.filter((u) => u._id !== id));
     } catch (err) {

@@ -4,6 +4,7 @@ import { Stars } from "../utils/helpers";
 import { FaTrash, FaPen } from "react-icons/fa";
 import Button from "./Button";
 import { showConfirm } from "./SweetAlert";
+import api from "../utils/api";
 
 export default function MenuReviews({ menuId }) {
   const { user, showToast } = useAppContext();
@@ -19,19 +20,16 @@ export default function MenuReviews({ menuId }) {
 
   const fetchReviews = async () => {
     try {
-      const res = await fetch(`http://localhost:5000/api/v1/rating/menu/${menuId}`);
-      if (res.ok) {
-        const data = await res.json();
-        const rList = data.ratings || [];
-        setReviews(rList.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
-        
-        if (user) {
-          const myReview = rList.find(r => r.user._id === user._id);
-          setUserReview(myReview || null);
-          if (myReview && !isEditing) {
-            setRating(myReview.rating);
-            setComment(myReview.comment);
-          }
+      const { data } = await api.get(`/rating/menu/${menuId}`);
+      const rList = data.ratings || [];
+      setReviews(rList.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
+
+      if (user) {
+        const myReview = rList.find(r => r.user._id === user._id);
+        setUserReview(myReview || null);
+        if (myReview && !isEditing) {
+          setRating(myReview.rating);
+          setComment(myReview.comment);
         }
       }
     } catch (err) {
@@ -45,19 +43,16 @@ export default function MenuReviews({ menuId }) {
     const token = localStorage.getItem("token");
     if (!token) return;
     try {
-      const res = await fetch("http://localhost:5000/api/v1/order/my-orders", {
+      const { data } = await api.get("/order/my-orders", {
         headers: { Authorization: `Bearer ${token}` }
       });
-      if (res.ok) {
-        const data = await res.json();
-        const orders = Array.isArray(data) ? data : data.data || [];
-        const bought = orders.some(o => 
-          ["WAITING", "PROCESSING", "COMPLETED"].includes(o.status) &&
-          o.paymentStatus === "PAID" &&
-          o.items.some(i => String(i.menu?._id || i.menu) === String(menuId))
-        );
-        setHasPurchased(bought);
-      }
+      const orders = Array.isArray(data) ? data : data.data || [];
+      const bought = orders.some(o => 
+        ["WAITING", "PROCESSING", "COMPLETED"].includes(o.status) &&
+        o.paymentStatus === "PAID" &&
+        o.items.some(i => String(i.menu?._id || i.menu) === String(menuId))
+      );
+      setHasPurchased(bought);
     } catch (err) {
       console.error("Gagal cek transaksi:", err);
     }
@@ -79,27 +74,21 @@ export default function MenuReviews({ menuId }) {
     const mtd = userReview ? "PUT" : "POST";
     const ratingId = userReview?._id || userReview?.ratingId;
     const endpoint = userReview 
-      ? `http://localhost:5000/api/v1/rating/${ratingId}` 
-      : `http://localhost:5000/api/v1/rating/menu/${menuId}`;
+      ? `/rating/${ratingId}` 
+      : `/rating/menu/${menuId}`;
 
     try {
-      const res = await fetch(endpoint, {
+      await api({
+        url: endpoint,
         method: mtd,
         headers: {
-          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({ rating, comment })
+        data: { rating, comment }
       });
-      
-      const resData = await res.json();
-      if (res.ok) {
-        showToast(userReview ? "Ulasan diperbarui" : "Ulasan berhasil ditambahkan");
-        setIsEditing(false);
-        fetchReviews();
-      } else {
-        showToast(resData.message || "Gagal menyimpan ulasan");
-      }
+      showToast(userReview ? "Ulasan diperbarui" : "Ulasan berhasil ditambahkan");
+      setIsEditing(false);
+      fetchReviews();
     } catch {
       showToast("Kesalahan jaringan");
     }
@@ -119,20 +108,14 @@ export default function MenuReviews({ menuId }) {
     const ratingId = userReview._id || userReview.ratingId;
 
     try {
-      const res = await fetch(`http://localhost:5000/api/v1/rating/${ratingId}`, {
-        method: "DELETE",
+      await api.delete(`/rating/${ratingId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      if (res.ok) {
-        showToast("Ulasan dihapus");
-        setUserReview(null);
-        setRating(5);
-        setComment("");
-        fetchReviews();
-      } else {
-        const data = await res.json();
-        showToast(data.message || "Gagal menghapus ulasan");
-      }
+      showToast("Ulasan dihapus");
+      setUserReview(null);
+      setRating(5);
+      setComment("");
+      fetchReviews();
     } catch {
       showToast("Kesalahan jaringan");
     }

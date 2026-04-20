@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
+import axios from "axios";
 import { formatRp, Stars } from "../../utils/helpers";
 import { FiSearch } from "react-icons/fi";
 import { IoFastFoodOutline, IoCafeOutline } from "react-icons/io5";
 import Card from "../../components/Card";
 import Button from "../../components/Button";
 import Label from "../../components/Label";
+import api from "../../utils/api";
 
-const MENU_API_URL = "http://localhost:5000/api/v1/menu";
 const FALLBACK_IMAGE =
   "https://images.unsplash.com/photo-1544025162-d76694265947?w=600&q=80";
 
@@ -34,7 +35,7 @@ function MenuCard({ item, onDetail }) {
         </div>
       </div>
       <div className="p-4 flex-1 flex flex-col">
-        <h3 className="font-bold text-gray-800 text-lg mb-1 leading-snug line-clamp-1">
+        <h3 className="font-bold text-gray-800 text-2xl mb-4 leading-snug line-clamp-1">
           {item.name}
         </h3>
 
@@ -42,11 +43,11 @@ function MenuCard({ item, onDetail }) {
           <Stars rating={item.rating} />
         </div>
 
-        <p className="text-xs text-gray-500 line-clamp-2 mb-4 leading-relaxed">{desc}
+        <p className="text-md text-gray-500 line-clamp-2 mb-4 leading-relaxed">{desc}
         </p>
 
         <div className="flex items-center justify-between mt-auto pt-3 border-t border-gray-200">
-          <p className="text-secondary font-black text-lg">
+          <p className="text-secondary font-black text-xl">
             {formatRp(item.price)}
           </p>
           <Button
@@ -99,15 +100,9 @@ export default function MenuPage({ setPage, setSelectedItem }) {
       setError("");
 
       try {
-        const response = await fetch(MENU_API_URL, {
+        const { data } = await api.get("/menu", {
           signal: controller.signal,
         });
-
-        if (!response.ok) {
-          throw new Error(`Gagal ambil menu (${response.status})`);
-        }
-
-        const data = await response.json();
         const normalized = Array.isArray(data)
           ? data.map((item, index) => ({
             id: item._id || `menu-${index}`,
@@ -128,7 +123,12 @@ export default function MenuPage({ setPage, setSelectedItem }) {
 
         setMenuItems(normalized);
       } catch (err) {
-        if (err.name !== "AbortError") {
+        if (
+          !axios.isCancel(err) &&
+          err?.name !== "CanceledError" &&
+          err?.code !== "ERR_CANCELED" &&
+          err?.name !== "AbortError"
+        ) {
           setError(err.message);
         }
       } finally {

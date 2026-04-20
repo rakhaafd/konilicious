@@ -7,6 +7,7 @@ import Card from "../../components/Card";
 import Input from "../../components/Input";
 import Label from "../../components/Label";
 import { showAlert } from "../../components/SweetAlert";
+import api from "../../utils/api";
 
 export default function ProfilePage({ setPage, setIsLoggedIn, user, setUser }) {
   const { setSelectedItem } = useAppContext();
@@ -34,54 +35,50 @@ export default function ProfilePage({ setPage, setIsLoggedIn, user, setUser }) {
 
         // Prioritaskan endpoint profile user aktif
         if (token) {
-          const meRes = await fetch("http://localhost:5000/api/v1/user/me", {
+          const meRes = await api.get("/user/me", {
             headers: {
               Authorization: `Bearer ${token}`,
             },
           });
 
-          if (meRes.ok) {
-            const meData = await meRes.json();
-            const userData = meData.user || meData.data || meData;
+          const meData = meRes.data;
+          const userData = meData.user || meData.data || meData;
 
-            setProfile({
-              _id: userData._id || userData.id,
-              username: userData.username,
-              email: userData.email,
-              profilePicture: userData.profilePicture || "",
-            });
+          setProfile({
+            _id: userData._id || userData.id,
+            username: userData.username,
+            email: userData.email,
+            profilePicture: userData.profilePicture || "",
+          });
 
-            if (setUser) {
-              setUser((prev) => ({ ...prev, ...userData }));
-            }
-            return;
+          if (setUser) {
+            setUser((prev) => ({ ...prev, ...userData }));
           }
+          return;
         }
 
         // Fallback ke endpoint by-id jika ada userId
         if (userId && token) {
-          const res = await fetch(`http://localhost:5000/api/v1/user/${userId}`, {
+          const res = await api.get(`/user/${userId}`, {
             headers: {
               Authorization: `Bearer ${token}`,
             },
           });
 
-          if (res.ok) {
-            const data = await res.json();
-            const userData = data.user || data.data || data;
+          const data = res.data;
+          const userData = data.user || data.data || data;
 
-            setProfile({
-              _id: userData._id || userData.id,
-              username: userData.username,
-              email: userData.email,
-              profilePicture: userData.profilePicture || "",
-            });
+          setProfile({
+            _id: userData._id || userData.id,
+            username: userData.username,
+            email: userData.email,
+            profilePicture: userData.profilePicture || "",
+          });
 
-            if (setUser) {
-              setUser(userData);
-            }
-            return; // Sukses fetch, tidak perlu jalankan fallback
+          if (setUser) {
+            setUser(userData);
           }
+          return; // Sukses fetch, tidak perlu jalankan fallback
         }
         
         // Fallback langsung pakai state local kalau fetch gagal/tidak ada id belum
@@ -120,13 +117,11 @@ export default function ProfilePage({ setPage, setIsLoggedIn, user, setUser }) {
 
       try {
         setLoadingOrders(true);
-        const res = await fetch("http://localhost:5000/api/v1/order/my-orders", {
+        const res = await api.get("/order/my-orders", {
           headers: { Authorization: `Bearer ${token}` }
         });
-        if (res.ok) {
-          const data = await res.json();
-          setOrders(Array.isArray(data) ? data : data.data || []);
-        }
+        const data = res.data;
+        setOrders(Array.isArray(data) ? data : data.data || []);
       } catch (err) {
         console.error("Gagal memuat orders:", err);
       } finally {
@@ -172,56 +167,39 @@ export default function ProfilePage({ setPage, setIsLoggedIn, user, setUser }) {
       }
 
       const token = localStorage.getItem("token");
-      const res = await fetch(
-        `http://localhost:5000/api/v1/user/${profile._id}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(payload),
+      const { data } = await api.put(`/user/${profile._id}`, payload, {
+        headers: {
+          Authorization: `Bearer ${token}`,
         },
-      );
+      });
+      const updatedUser = data.user || data.data || payload;
 
-      if (res.ok) {
-        const data = await res.json();
-        const updatedUser = data.user || data.data || payload;
+      // Update local state
+      setProfile((prev) => ({
+        ...prev,
+        username: updatedUser.username || payload.username,
+        email: updatedUser.email || payload.email,
+      }));
 
-        // Update local state
-        setProfile((prev) => ({
+      if (setUser) {
+        setUser((prev) => ({
           ...prev,
           username: updatedUser.username || payload.username,
           email: updatedUser.email || payload.email,
         }));
-
-        if (setUser) {
-          setUser((prev) => ({
-            ...prev,
-            username: updatedUser.username || payload.username,
-            email: updatedUser.email || payload.email,
-          }));
-        }
-
-        setIsEditing(false);
-        await showAlert({
-          title: "Berhasil",
-          text: "Profil berhasil diperbarui!",
-          icon: "success",
-        });
-      } else {
-        const errData = await res.json();
-        await showAlert({
-          title: "Gagal",
-          text: errData.message || "Gagal memperbarui profil.",
-          icon: "error",
-        });
       }
+
+      setIsEditing(false);
+      await showAlert({
+        title: "Berhasil",
+        text: "Profil berhasil diperbarui!",
+        icon: "success",
+      });
     } catch (error) {
       console.error("Error updating profile:", error);
       await showAlert({
-        title: "Koneksi Gagal",
-        text: "Error connecting to server.",
+        title: "Gagal",
+        text: error?.response?.data?.message || "Error connecting to server.",
         icon: "error",
       });
     }
@@ -252,33 +230,12 @@ export default function ProfilePage({ setPage, setIsLoggedIn, user, setUser }) {
       const formData = new FormData();
       formData.append("profilePicture", file);
 
-      const res = await fetch("http://localhost:5000/api/v1/user/me/profile-picture", {
-        method: "PUT",
+      const { data } = await api.put("/user/me/profile-picture", formData, {
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: "application/json",
         },
-        body: formData,
       });
-
-      const rawResponse = await res.text();
-      let data = {};
-      try {
-        data = rawResponse ? JSON.parse(rawResponse) : {};
-      } catch {
-        data = { message: rawResponse };
-      }
-
-      if (!res.ok) {
-        await showAlert({
-          title: "Gagal Upload",
-          text:
-            data.message ||
-            `Gagal memperbarui foto profil (HTTP ${res.status}).`,
-          icon: "error",
-        });
-        return;
-      }
 
       const newPictureUrl = data.profilePicture || "";
       setProfile((prev) => ({ ...prev, profilePicture: newPictureUrl }));
@@ -295,8 +252,8 @@ export default function ProfilePage({ setPage, setIsLoggedIn, user, setUser }) {
     } catch (error) {
       console.error("Error uploading profile picture:", error);
       await showAlert({
-        title: "Koneksi Gagal",
-        text: "Terjadi masalah saat upload foto profil.",
+        title: "Gagal Upload",
+        text: error?.response?.data?.message || "Terjadi masalah saat upload foto profil.",
         icon: "error",
       });
     } finally {

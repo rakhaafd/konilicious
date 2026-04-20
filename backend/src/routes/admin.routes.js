@@ -4,6 +4,7 @@ const router = express.Router();
 const adminController = require('../controllers/admin.controller');
 const { isAuth } = require('../middleware/auth.middleware');
 const { isAdmin } = require('../middleware/isAdmin.middleware');
+const upload = require('../middleware/upload');
 
 router.use(isAuth, isAdmin);
 
@@ -20,8 +21,8 @@ router.delete('/users/:id', adminController.deleteUser);
 // Menu CRUD
 router.get('/menus', adminController.getMenus);
 router.get('/menus/:id', adminController.getMenuById);
-router.post('/menus', adminController.createMenu);
-router.put('/menus/:id', adminController.updateMenu);
+router.post('/menus', upload.single('image'), adminController.createMenu);
+router.put('/menus/:id', upload.single('image'), adminController.updateMenu);
 router.delete('/menus/:id', adminController.deleteMenu);
 
 // Rating CRUD

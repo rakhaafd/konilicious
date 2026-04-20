@@ -1,0 +1,56 @@
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400..700&family=Manrope:wght@200..800&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #FFC107;     /* Oren/Kuning Cerah */
+  --color-primary-hover: #e0a800; /* Oren gelap saat hover */
+  --color-primary-text: #111827;  /* Teks hitam agar kontras di atas oren */
+  --color-secondary: #E00013;   /* Merah Konicipi */
+  --color-secondary-hover: #B9000D; 
+  --color-accent: #111827;      /* Hitam pekat untuk elemen tegas (aksen) */
+  --color-accent-hover: #000000; 
+}
+
+* {
+    font-family: "Manrope";
+}
+
+.brand {
+    font-family: "Caveat";
+}
+
+@keyframes welcome-rise {
+  0% {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes welcome-progress {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+.welcome-rise {
+  animation: welcome-rise 0.6s ease-out both;
+}
+
+.welcome-rise-delayed {
+  animation: welcome-rise 0.7s ease-out 0.12s both;
+}
+
+.welcome-rise-more {
+  animation: welcome-rise 0.75s ease-out 0.22s both;
+}
+
+.welcome-progress {
+  animation: welcome-progress 1.9s cubic-bezier(0.2, 0.8, 0.2, 1) 0.25s both;
+}

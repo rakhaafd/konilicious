@@ -95,6 +95,9 @@ export default function AdminDashboardPage() {
     totalMenus: 0,
     totalRatings: 0,
     completedOrders: 0,
+    incomingOrders: 0,
+    weeklyRevenue: 0,
+    weeklyPaidTransactions: 0,
   });
   const [users, setUsers] = useState([]);
   const [menus, setMenus] = useState([]);
@@ -130,6 +133,9 @@ export default function AdminDashboardPage() {
           totalMenus: summaryData.totalMenus || 0,
           totalRatings: summaryData.totalRatings || 0,
           completedOrders: summaryData.completedOrders || 0,
+          incomingOrders: summaryData.incomingOrders || 0,
+          weeklyRevenue: summaryData.weeklyRevenue || 0,
+          weeklyPaidTransactions: summaryData.weeklyPaidTransactions || 0,
         });
         setUsers(Array.isArray(usersData) ? usersData : []);
         setMenus(Array.isArray(menusData) ? menusData : []);
@@ -322,11 +328,19 @@ export default function AdminDashboardPage() {
 
       {!loading && !error && (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+            <MetricCard title="Order Masuk" value={summary.incomingOrders} subtitle="Menunggu diproses (WAITING)" />
+            <MetricCard
+              title="Pendapatan 7 Hari"
+              value={`Rp ${Number(summary.weeklyRevenue || 0).toLocaleString("id-ID")}`}
+            />
+            <MetricCard title="Order Selesai" value={summary.completedOrders} subtitle="Status COMPLETED" />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
             <MetricCard title="Total User" value={summary.totalUsers} subtitle="Seluruh akun terdaftar" />
             <MetricCard title="Total Menu" value={summary.totalMenus} subtitle="Item makanan dan minuman" />
             <MetricCard title="Total Rating" value={summary.totalRatings} subtitle="Ulasan dari pelanggan" />
-            <MetricCard title="Order Selesai" value={summary.completedOrders} subtitle="Status COMPLETED" />
           </div>
 
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">

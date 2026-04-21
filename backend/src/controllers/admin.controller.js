@@ -7,6 +7,7 @@ const User = require('../models/user.model');
 const Menu = require('../models/menu.model');
 const Rating = require('../models/rating.model');
 const Order = require('../models/order.model');
+const Payment = require('../models/payment.model');
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -119,20 +120,57 @@ const sanitizeRating = (rating) => {
   };
 };
 
+const JAKARTA_OFFSET_MINUTES = 7 * 60;
+
+const getJakartaRangeStart = (days) => {
+  const now = new Date();
+  const utcTimestamp = now.getTime() + now.getTimezoneOffset() * 60 * 1000;
+  const jakartaNow = new Date(utcTimestamp + JAKARTA_OFFSET_MINUTES * 60 * 1000);
+
+  jakartaNow.setHours(0, 0, 0, 0);
+  jakartaNow.setDate(jakartaNow.getDate() - (days - 1));
+
+  return new Date(jakartaNow.getTime() - JAKARTA_OFFSET_MINUTES * 60 * 1000);
+};
+
 exports.getDashboardSummary = async (req, res) => {
   try {
-    const [totalUsers, totalMenus, totalRatings, completedOrders] = await Promise.all([
+    const weekAgo = getJakartaRangeStart(7);
+
+    const [totalUsers, totalMenus, totalRatings, completedOrders, incomingOrders, weeklyRevenueAggregation] = await Promise.all([
       User.countDocuments(),
       Menu.countDocuments(),
       Rating.countDocuments(),
       Order.countDocuments({ status: 'COMPLETED' }),
+      Order.countDocuments({ status: 'WAITING' }),
+      Payment.aggregate([
+        {
+          $match: {
+            status: { $in: ['PAID', 'SETTLED'] },
+            createdAt: { $gte: weekAgo },
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            total: { $sum: '$totalAmount' },
+            count: { $sum: 1 },
+          },
+        },
+      ]),
     ]);
+
+    const weeklyRevenue = weeklyRevenueAggregation[0]?.total || 0;
+    const weeklyPaidTransactions = weeklyRevenueAggregation[0]?.count || 0;
 
     res.json({
       totalUsers,
       totalMenus,
       totalRatings,
       completedOrders,
+      incomingOrders,
+      weeklyRevenue,
+      weeklyPaidTransactions,
     });
   } catch (err) {
     res.status(500).json({ message: err.message });

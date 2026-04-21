@@ -15,11 +15,20 @@ exports.getMyCart = async (req, res) => {
 exports.addToCart = async (req, res) => {
   try {
     const { menuId, quantity } = req.body;
+    const normalizedLabel =
+      typeof req.body.label === 'string' && req.body.label.trim().length > 0
+        ? req.body.label.trim()
+        : null;
+    const safeQuantity = Math.max(1, Number(quantity) || 1);
 
-    // cek apakah menu sudah ada di cart
-    const existingItem = await Cart.findOne({ user: req.user.id, menu: menuId });
+    // Pembeda item cart adalah menu + variant (label)
+    const existingItem = await Cart.findOne({
+      user: req.user.id,
+      menu: menuId,
+      label: normalizedLabel,
+    });
     if (existingItem) {
-      existingItem.quantity += quantity || 1;
+      existingItem.quantity += safeQuantity;
       await existingItem.save();
       return res.json({ message: 'Quantity diupdate', cart: existingItem });
     }
@@ -27,7 +36,8 @@ exports.addToCart = async (req, res) => {
     const cart = await Cart.create({
       user: req.user.id,
       menu: menuId,
-      quantity: quantity || 1
+      label: normalizedLabel,
+      quantity: safeQuantity
     });
 
     res.status(201).json({ message: 'Item ditambahkan ke cart', cart });

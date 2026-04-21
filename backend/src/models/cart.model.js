@@ -11,6 +11,11 @@ const cartSchema = new mongoose.Schema({
     ref: 'Menu',
     required: true
   },
+  label: {
+    type: String,
+    default: null,
+    trim: true
+  },
   quantity: {
     type: Number,
     required: true,

@@ -207,6 +207,7 @@ export default function AdminOrdersPage() {
                         {(order.items || []).slice(0, 3).map((item, idx) => (
                           <p key={`${order._id}-item-${idx}`} className="text-xs text-gray-700">
                             {item.quantity}x {item.menu?.name || "Menu"}
+                            {item.label ? ` (${item.label})` : ""}
                           </p>
                         ))}
                         {(order.items || []).length > 3 && (

@@ -29,6 +29,11 @@ const paymentSchema = new mongoose.Schema({
       type: Number,
       required: true,
       min: 0
+    },
+    label: {
+      type: String,
+      default: null,
+      trim: true
     }
   }],
   xenditInvoiceId: {

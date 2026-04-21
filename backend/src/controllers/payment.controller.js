@@ -36,6 +36,7 @@ const ensureOrderForPaidPayment = async (paymentDoc) => {
         menu: cartItem.menu._id,
         quantity: cartItem.quantity,
         price: cartItem.menu.price,
+        label: cartItem.label || null,
       }));
 
     const orderItems = snapshotItems.length > 0
@@ -43,6 +44,7 @@ const ensureOrderForPaidPayment = async (paymentDoc) => {
           menu: item.menu,
           quantity: item.quantity,
           price: item.price,
+          label: item.label || null,
         }))
       : cartFallbackItems;
 
@@ -92,6 +94,7 @@ exports.createPayment = async (req, res) => {
       name: item.menu.name,
       quantity: item.quantity,
       price: item.menu.price,
+      label: item.label || null,
     }));
 
     const invoice = await xenditClient.Invoice.createInvoice({
@@ -105,7 +108,7 @@ exports.createPayment = async (req, res) => {
         successRedirectUrl,
         failureRedirectUrl,
         items: validCartItems.map(item => ({
-          name: item.menu.name,
+          name: item.label ? `${item.menu.name} - ${item.label}` : item.menu.name,
           quantity: item.quantity,
           price: item.menu.price
         }))
@@ -160,6 +163,7 @@ exports.createPaymentById = async (req, res) => {
       name: cart.menu.name,
       quantity,
       price: cart.menu.price,
+      label: cart.label || null,
     }];
 
     const invoice = await xenditClient.Invoice.createInvoice({
@@ -173,7 +177,7 @@ exports.createPaymentById = async (req, res) => {
         successRedirectUrl,
         failureRedirectUrl,
         items: [{
-          name: cart.menu.name,
+          name: cart.label ? `${cart.menu.name} - ${cart.label}` : cart.menu.name,
           quantity: quantity,
           price: cart.menu.price
         }]
@@ -297,6 +301,10 @@ exports.createCheckoutPayment = async (req, res) => {
   try {
     const { successRedirectUrl, failureRedirectUrl } = getRedirectUrls();
     const { menuId, quantity = 1 } = req.body;
+    const normalizedLabel =
+      typeof req.body.label === 'string' && req.body.label.trim().length > 0
+        ? req.body.label.trim()
+        : null;
 
     if (!menuId) {
       return res.status(400).json({ message: 'menuId wajib diisi' });
@@ -315,6 +323,7 @@ exports.createCheckoutPayment = async (req, res) => {
       name: menu.name,
       quantity: safeQuantity,
       price: menu.price,
+      label: normalizedLabel,
     }];
 
     const invoice = await xenditClient.Invoice.createInvoice({
@@ -328,7 +337,7 @@ exports.createCheckoutPayment = async (req, res) => {
         successRedirectUrl,
         failureRedirectUrl,
         items: [{
-          name: menu.name,
+          name: normalizedLabel ? `${menu.name} - ${normalizedLabel}` : menu.name,
           quantity: safeQuantity,
           price: menu.price,
         }],

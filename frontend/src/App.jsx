@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, Link } from "react-router-dom";
 import MainLayout from "./layouts/MainLayout";
 import AdminLayout from "./layouts/AdminLayout";
 import { useAppContext } from "./context/AppContext";
@@ -19,6 +19,26 @@ import AdminLoginPage from "./pages/admin/auth/AdminLoginPage";
 import AdminRoute from "./pages/admin/AdminRoute";
 import LoginPage from "./pages/user/auth/LoginPage";
 import RegisterPage from "./pages/user/auth/RegisterPage";
+
+function NotFoundPage() {
+  return (
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        textAlign: "center",
+        padding: "1.5rem",
+      }}
+    >
+      <h1 style={{ fontSize: "3rem", marginBottom: "0.5rem" }}>404</h1>
+      <p style={{ marginBottom: "1rem" }}>Halaman yang kamu cari tidak ditemukan.</p>
+      <Link to="/">Kembali ke Beranda</Link>
+    </div>
+  );
+}
 
 export default function App() {
   const [showWelcome, setShowWelcome] = useState(true);
@@ -159,6 +179,7 @@ export default function App() {
           />
         }
       />
+      <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </>
   );

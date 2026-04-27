@@ -22,20 +22,20 @@ import RegisterPage from "./pages/user/auth/RegisterPage";
 
 function NotFoundPage() {
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        textAlign: "center",
-        padding: "1.5rem",
-      }}
-    >
-      <h1 style={{ fontSize: "3rem", marginBottom: "0.5rem" }}>404</h1>
-      <p style={{ marginBottom: "1rem" }}>Halaman yang kamu cari tidak ditemukan.</p>
-      <Link to="/">Kembali ke Beranda</Link>
+    <div className="flex min-h-screen flex-col items-center justify-center bg-accent px-6 py-16 text-center text-white">
+      <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-primary">Error 404</p>
+      <h1 className="mb-2 text-5xl font-extrabold leading-none text-primary sm:text-6xl">404</h1>
+      <h2 className="mb-3 text-xl font-semibold">Halaman tidak ditemukan</h2>
+      <p className="mx-auto mb-6 max-w-sm text-sm text-slate-300">
+        Maaf, halaman yang kamu tuju tidak tersedia atau mungkin sudah dipindahkan.
+      </p>
+
+      <Link
+        to="/"
+        className="inline-flex items-center justify-center rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-text transition hover:bg-primary-hover"
+      >
+        Kembali ke Beranda
+      </Link>
     </div>
   );
 }
